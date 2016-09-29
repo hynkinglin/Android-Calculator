@@ -4,10 +4,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
-
 
 
 public class MainActivity extends AppCompatActivity {
@@ -32,13 +30,11 @@ public class MainActivity extends AppCompatActivity {
         result = 0;
         leftParenthesis = 0;
         displayExpression();
-        displayResult(result);
+        displayResult(result+"");
         enableLeftParenthesis();
-        disableRightParenthesis();
     }
 
-    public void registerKey(View view)
-    {
+    public void registerKey(View view) throws Exception {
         int itemId = view.getId();
         if (itemId == R.id.button0)
             operand("0");
@@ -93,26 +89,25 @@ public class MainActivity extends AppCompatActivity {
         expression.setText(value);
     }
 
-    private void displayResult(double result)
+    private void displayResult(String result)
     {
         TextView tvResult = (TextView) findViewById(R.id.textResult);
-        tvResult.setText(result+"");
+        tvResult.setText(result);
     }
 
     private void operand(String operand)
     {
-        if(value.equals("0") && operand != ".")
+        if(value.equals("0") && !operand.equals("."))
             value = operand;
         else
             value += operand;
 
 
         enableEqual();
-        disableLeftParenthesis();
-        if (leftParenthesis != 0)
-        {
-            enableRightParenthesis();
-        }
+
+        // if the leftParen is zero, the right paren will still not enable..
+        enableRightParenthesis();
+        enableOperator(true);
     }
 
     private void operator(String operator)
@@ -127,8 +122,8 @@ public class MainActivity extends AppCompatActivity {
             value += operator;
         }
         disableEqual();
-        disableRightParenthesis();
         enableLeftParenthesis();
+        enableOperator(false);
         // else: Operator by itself is an illegal operation, do not place operator.
     }
 
@@ -138,50 +133,76 @@ public class MainActivity extends AppCompatActivity {
             value = "(";
         else
             value += parenthesis;
+
         if(parenthesis.equals("("))
         {
             disableEqual();
             leftParenthesis++;
+            enableOperator(false);
         }
 
 
         else
         {
-            enableEqual();
             leftParenthesis--;
+            enableOperator(true);
             if(leftParenthesis == 0)
+            {
                 disableRightParenthesis();
+                enableEqual();
+            }
+
         }
+
 
     }
 
-    public void calculate()
+    public void calculate() throws Exception
     {
-        if (value.equals("0"))
+        try
         {
-            return;
+            if (value.equals("0"))
+            {
+                return;
+            }
+            PostfixConverter converter = new PostfixConverter(value);
+            for (String s : converter.getPostfix())
+            {
+                Log.d(LOG_TAG, s);
+            }
+
+            PostfixCalculator calculator = new PostfixCalculator(converter.getPostfix());
+            // BigDecimal result = calculator.result();
+            result = calculator.result();
+            displayResult(result+"");
+            enableOperator(true);
+            Log.v(LOG_TAG, result + "");
         }
-        PostfixConverter converter = new PostfixConverter(value);
-        for (String s : converter.getPostfix())
+        catch (Exception e)
         {
-            Log.d(LOG_TAG, s);
+            displayResult("Bad Expression");
+
         }
 
-        PostfixCalculator calculator = new PostfixCalculator(converter.getPostfix());
-        // BigDecimal result = calculator.result();
-        result = calculator.result();
-        int i = (int) result;
-        if (result == i)
-            displayResult(i);
-        else
-            displayResult(result);
-        Log.v(LOG_TAG, result + "");
     }
 
 
 
     private void delete()
     {
+        String last = value.substring(value.length()-1);
+        Log.d(LOG_TAG, "deleted :" + last);
+        if(last.equals("("))
+        {
+            leftParenthesis--;
+            enableLeftParenthesis();
+        }
+        else if(last.equals(")"))
+        {
+            leftParenthesis++;
+            enableRightParenthesis();
+        }
+
         if (value.length() > 1)
         {
             value = value.substring(0, value.length()-1);
@@ -212,18 +233,29 @@ public class MainActivity extends AppCompatActivity {
         equal.setEnabled(true);
     }
 
-    private void disableLeftParenthesis()
-    {
-        Button left = (Button) findViewById(R.id.buttonLeftParenthesis);
-        left.setEnabled(false);
-
-    }
 
     private void enableLeftParenthesis()
     {
         Button left = (Button) findViewById(R.id.buttonLeftParenthesis);
         left.setEnabled(true);
+
+        Button right = (Button) findViewById(R.id.buttonRightParenthesis);
+        right.setEnabled(false);
+
         disableEqual();
+
+    }
+
+
+    private void enableRightParenthesis()
+    {
+        Button right = (Button) findViewById(R.id.buttonRightParenthesis);
+        if (leftParenthesis != 0)
+            right.setEnabled(true);
+
+        Button left = (Button) findViewById(R.id.buttonLeftParenthesis);
+        left.setEnabled(false);
+
 
     }
 
@@ -233,10 +265,16 @@ public class MainActivity extends AppCompatActivity {
         right.setEnabled(false);
     }
 
-    private void enableRightParenthesis()
+    private void enableOperator(boolean enable)
     {
-        Button right = (Button) findViewById(R.id.buttonRightParenthesis);
-        right.setEnabled(true);
+        Button add = (Button)findViewById(R.id.buttonAdd);
+        Button sub = (Button)findViewById(R.id.buttonSub);
+        Button mul = (Button)findViewById(R.id.buttonMul);
+        Button div = (Button)findViewById(R.id.buttonDiv);
+        add.setEnabled(enable);
+        sub.setEnabled(enable);
+        mul.setEnabled(enable);
+        div.setEnabled(enable);
     }
 
 
